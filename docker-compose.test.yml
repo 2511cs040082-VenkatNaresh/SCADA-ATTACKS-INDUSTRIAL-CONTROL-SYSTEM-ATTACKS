@@ -1,0 +1,52 @@
+version: '3.8'
+
+# ==============================================================================
+# ICS-SHIELD — AUTOMATED TESTING DOCKER COMPOSE ORCHESTRATION
+# ==============================================================================
+
+networks:
+  test_net:
+    driver: bridge
+
+services:
+  test-runner:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    container_name: icsshield-test-runner
+    environment:
+      - NODE_ENV=test
+      - PORT=5055
+      - DATABASE_HOST=mysql
+      - DATABASE_PORT=3306
+      - DATABASE_NAME=ics_shield_test
+      - DATABASE_USER=icsshield_user
+      - DATABASE_PASSWORD=icsshield_secure_password_change_me
+      - JWT_SECRET=test_jwt_secret_key_67890
+    volumes:
+      - ./tests:/app/tests
+      - ./docs/testing:/app/docs/testing
+    networks:
+      - test_net
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: ["node", "tests/run_all_tests.js"]
+
+  mysql:
+    image: mysql:8.0
+    container_name: icsshield-test-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: icsshield_root_password_change_me
+      MYSQL_DATABASE: ics_shield_test
+      MYSQL_USER: icsshield_user
+      MYSQL_PASSWORD: icsshield_secure_password_change_me
+    volumes:
+      - ./database/schema/full_schema.sql:/docker-entrypoint-initdb.d/001_full_schema.sql
+    networks:
+      - test_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-picsshield_root_password_change_me"]
+      interval: 5s
+      timeout: 3s
+      retries: 5

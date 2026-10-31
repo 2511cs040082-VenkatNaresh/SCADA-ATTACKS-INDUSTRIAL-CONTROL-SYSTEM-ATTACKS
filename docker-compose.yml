@@ -1,0 +1,175 @@
+version: '3.8'
+
+# ==============================================================================
+# ICS-SHIELD — PRODUCTION-STYLE DOCKER COMPOSE ORCHESTRATION
+# ==============================================================================
+
+networks:
+  frontend_net:
+    driver: bridge
+  backend_net:
+    driver: bridge
+  data_net:
+    driver: bridge
+    internal: true
+  lab_net:
+    driver: bridge
+    internal: true
+
+volumes:
+  mysql_data:
+    driver: local
+  report_exports:
+    driver: local
+  audit_logs:
+    driver: local
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. FRONTEND SERVICE (Multi-Stage React SPA + Nginx)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    container_name: icsshield-frontend
+    ports:
+      - "80:80"
+    networks:
+      - frontend_net
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://127.0.0.1:80/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ----------------------------------------------------------------------------
+  # 2. BACKEND API & WEBSOCKET ENGINE (Node.js 20 Express)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    container_name: icsshield-backend
+    ports:
+      - "5050:5050"
+    environment:
+      - NODE_ENV=production
+      - PORT=5050
+      - DATABASE_HOST=mysql
+      - DATABASE_PORT=3306
+      - DATABASE_NAME=${DATABASE_NAME:-ics_shield}
+      - DATABASE_USER=${DATABASE_USER:-icsshield_user}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-icsshield_secure_password_change_me}
+      - JWT_SECRET=${JWT_SECRET:-ics_shield_production_jwt_secret_key_2026_super_secure}
+      - DETECTION_SERVICE_URL=http://detection-engine:8080
+      - ICS_LAB_SERVICE_URL=http://ics-lab:8085
+      - RESPONSE_SIMULATION_MODE=true
+    volumes:
+      - report_exports:/app/exports/reports
+      - audit_logs:/app/logs
+    networks:
+      - frontend_net
+      - backend_net
+      - data_net
+      - lab_net
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "/app/healthcheck.js"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ----------------------------------------------------------------------------
+  # 3. DATABASE SERVICE (MySQL 8.0 Hardened)
+  # ----------------------------------------------------------------------------
+  mysql:
+    image: mysql:8.0
+    container_name: icsshield-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DATABASE_ROOT_PASSWORD:-icsshield_root_password_change_me}
+      MYSQL_DATABASE: ${DATABASE_NAME:-ics_shield}
+      MYSQL_USER: ${DATABASE_USER:-icsshield_user}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:-icsshield_secure_password_change_me}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/configs/mysql.cnf:/etc/mysql/conf.d/custom.cnf
+      - ./database/schema/full_schema.sql:/docker-entrypoint-initdb.d/001_full_schema.sql
+    networks:
+      - data_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DATABASE_ROOT_PASSWORD:-icsshield_root_password_change_me}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------------
+  # 4. TELEMETRY INGESTION PIPELINE
+  # ----------------------------------------------------------------------------
+  telemetry:
+    build:
+      context: .
+      dockerfile: docker/telemetry.Dockerfile
+    container_name: icsshield-telemetry
+    environment:
+      - TELEMETRY_PORT=8086
+      - BACKEND_URL=http://backend:5050
+      - ICS_SIMULATOR_URL=http://ics-lab:8085
+    networks:
+      - backend_net
+      - lab_net
+    depends_on:
+      backend:
+        condition: service_healthy
+      ics-lab:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------------
+  # 5. DETECTION ENGINE (Python FastAPI + ML Anomaly Engine)
+  # ----------------------------------------------------------------------------
+  detection-engine:
+    build:
+      context: .
+      dockerfile: docker/detection.Dockerfile
+    container_name: icsshield-detection-engine
+    environment:
+      - PORT=8080
+      - ENVIRONMENT=production
+    networks:
+      - backend_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ----------------------------------------------------------------------------
+  # 6. ISOLATED ICS LABORATORY SIMULATOR
+  # ----------------------------------------------------------------------------
+  ics-lab:
+    build:
+      context: .
+      dockerfile: docker/lab.Dockerfile
+    container_name: icsshield-ics-lab
+    environment:
+      - PORT=8085
+      - ENVIRONMENT=LAB_SIMULATION
+      - ALLOW_REAL_INFRASTRUCTURE_CONNECT=false
+    networks:
+      - lab_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8085/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3

@@ -1,0 +1,33 @@
+collector:
+  host: "0.0.0.0"
+  port: 8086
+  poll_interval_seconds: 1.0
+  simulator_url: "http://localhost:8085"
+  reconnect_interval_seconds: 2.0
+  max_reconnect_attempts: 10
+
+backend:
+  url: "http://localhost:5050"
+  ingestion_path: "/api/v1/internal/events"
+  batch_ingestion_path: "/api/v1/internal/events/batch"
+  health_path: "/api/v1/system/telemetry/health"
+  service_token: "ics_shield_internal_telemetry_secret_token_2026"
+  timeout_seconds: 5.0
+
+pipeline:
+  queue_size: 5000
+  batch_size: 50
+  batch_timeout_seconds: 0.5
+  workers: 4
+  retry_limit: 3
+  retry_initial_delay_seconds: 0.5
+  retry_max_delay_seconds: 5.0
+  enable_idempotency_check: true
+
+monitoring:
+  metrics_window_seconds: 60
+  log_level: "INFO"
+
+asset_status_thresholds:
+  stale_seconds: 15
+  offline_seconds: 45

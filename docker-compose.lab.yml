@@ -1,0 +1,137 @@
+version: '3.8'
+
+# ==============================================================================
+# ICS-SHIELD — ISOLATED ICS LABORATORY SIMULATION PROFILE
+# ==============================================================================
+
+networks:
+  app_net:
+    driver: bridge
+  lab_net:
+    driver: bridge
+    internal: true # STRICT AIR-GAP: Internal isolated Docker network (No external internet/OT bridge)
+
+volumes:
+  lab_mysql_data:
+    driver: local
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. FRONTEND WORKSPACE
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    container_name: icsshield-lab-frontend
+    ports:
+      - "80:80"
+    networks:
+      - app_net
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------------
+  # 2. BACKEND SOC ENGINE
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    container_name: icsshield-lab-backend
+    ports:
+      - "5050:5050"
+    environment:
+      - NODE_ENV=production
+      - PORT=5050
+      - DATABASE_HOST=mysql
+      - DATABASE_PORT=3306
+      - DATABASE_NAME=ics_shield_lab
+      - DATABASE_USER=icsshield_user
+      - DATABASE_PASSWORD=icsshield_secure_password_change_me
+      - JWT_SECRET=lab_jwt_secret_key_99999
+      - DETECTION_SERVICE_URL=http://detection-engine:8080
+      - ICS_LAB_SERVICE_URL=http://ics-simulator:8085
+      - RESPONSE_SIMULATION_MODE=true
+      - ENVIRONMENT=LAB_SIMULATION
+    networks:
+      - app_net
+      - lab_net
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------------
+  # 3. DATABASE
+  # ----------------------------------------------------------------------------
+  mysql:
+    image: mysql:8.0
+    container_name: icsshield-lab-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: icsshield_root_password_change_me
+      MYSQL_DATABASE: ics_shield_lab
+      MYSQL_USER: icsshield_user
+      MYSQL_PASSWORD: icsshield_secure_password_change_me
+    volumes:
+      - lab_mysql_data:/var/lib/mysql
+      - ./database/schema/full_schema.sql:/docker-entrypoint-initdb.d/001_full_schema.sql
+    networks:
+      - lab_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-picsshield_root_password_change_me"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------------------------------------------
+  # 4. ISOLATED ICS LABORATORY SIMULATOR (PLC-001, RTU-001, HMI-001)
+  # ----------------------------------------------------------------------------
+  ics-simulator:
+    build:
+      context: .
+      dockerfile: docker/lab.Dockerfile
+    container_name: icsshield-simulated-ics-lab
+    environment:
+      - PORT=8085
+      - ENVIRONMENT=LAB_SIMULATION
+      - TARGET_ALLOWLIST=PLC-001,RTU-001,HMI-001,ENG-WS-001,HISTORIAN-001
+      - ALLOW_REAL_INFRASTRUCTURE_CONNECT=false
+      - SAFETY_BOUNDARY_STRICT=true
+    networks:
+      - lab_net
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------------
+  # 5. TELEMETRY & PROTOCOL PIPELINE
+  # ----------------------------------------------------------------------------
+  telemetry-pipeline:
+    build:
+      context: .
+      dockerfile: docker/telemetry.Dockerfile
+    container_name: icsshield-lab-telemetry
+    environment:
+      - TELEMETRY_PORT=8086
+      - BACKEND_URL=http://backend:5050
+      - ICS_SIMULATOR_URL=http://ics-simulator:8085
+    networks:
+      - lab_net
+    depends_on:
+      - backend
+      - ics-simulator
+
+  # ----------------------------------------------------------------------------
+  # 6. DETECTION & ML ANOMALY ENGINE
+  # ----------------------------------------------------------------------------
+  detection-engine:
+    build:
+      context: .
+      dockerfile: docker/detection.Dockerfile
+    container_name: icsshield-lab-detection
+    environment:
+      - PORT=8080
+      - ENVIRONMENT=LAB_SIMULATION
+    networks:
+      - lab_net
+    restart: unless-stopped

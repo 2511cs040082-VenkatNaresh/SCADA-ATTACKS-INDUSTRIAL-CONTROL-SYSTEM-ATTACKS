@@ -1,0 +1,31 @@
+monitoring:
+  enabled: true
+  environment: "ICS_LAB"
+  flow_aggregation_interval_seconds: 1.0
+  session_timeout_seconds: 300
+  transaction_timeout_seconds: 5.0
+  max_in_memory_flows: 5000
+  max_in_memory_sessions: 2000
+  max_in_memory_transactions: 10000
+
+backend:
+  url: "http://localhost:5050"
+  service_token: "ics_shield_internal_telemetry_secret_token_2026"
+
+protocols:
+  modbus_tcp:
+    enabled: true
+    default_port: 502
+    track_registers: true
+  dnp3:
+    enabled: false
+    default_port: 20000
+  opc_ua:
+    enabled: false
+    default_port: 4840
+  s7:
+    enabled: false
+    default_port: 102
+  ethernet_ip:
+    enabled: false
+    default_port: 44818

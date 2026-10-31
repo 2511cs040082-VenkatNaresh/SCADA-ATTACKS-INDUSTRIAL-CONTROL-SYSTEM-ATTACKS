@@ -1,0 +1,45 @@
+# .dockerignore - Docker build exclusion rules for ICS-SHIELD
+
+# Dependencies & Lockfiles
+**/node_modules
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# Environment & Secret files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+*.pem
+*.key
+*.crt
+
+# Build outputs & caches
+**/dist
+**/build
+**/.cache
+**/.next
+**/.turbo
+
+# Git & Repository metadata
+.git
+.gitignore
+.github
+.DS_Store
+
+# Logs & Temporary files
+**/logs
+**/*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+tmp/
+scratch/
+
+# Testing & Coverage outputs
+**/coverage
+**/.nyc_output
+**/test-reports

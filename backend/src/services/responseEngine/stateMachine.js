@@ -1,0 +1,48 @@
+export const RESPONSE_STATES = {
+  DRAFT: 'DRAFT',
+  RECOMMENDED: 'RECOMMENDED',
+  PENDING_APPROVAL: 'PENDING_APPROVAL',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  VALIDATING: 'VALIDATING',
+  EXECUTING: 'EXECUTING',
+  PARTIALLY_COMPLETED: 'PARTIALLY_COMPLETED',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED',
+  ROLLBACK_PENDING: 'ROLLBACK_PENDING',
+  ROLLING_BACK: 'ROLLING_BACK',
+  ROLLED_BACK: 'ROLLED_BACK',
+  EXPIRED: 'EXPIRED'
+};
+
+const ALLOWED_TRANSITIONS = {
+  DRAFT: ['RECOMMENDED', 'PENDING_APPROVAL', 'CANCELLED'],
+  RECOMMENDED: ['PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'CANCELLED', 'EXPIRED'],
+  PENDING_APPROVAL: ['APPROVED', 'REJECTED', 'CANCELLED', 'EXPIRED'],
+  APPROVED: ['VALIDATING', 'EXECUTING', 'CANCELLED'],
+  REJECTED: ['DRAFT', 'CANCELLED'],
+  VALIDATING: ['EXECUTING', 'FAILED', 'CANCELLED'],
+  EXECUTING: ['COMPLETED', 'PARTIALLY_COMPLETED', 'FAILED', 'CANCELLED'],
+  PARTIALLY_COMPLETED: ['COMPLETED', 'ROLLBACK_PENDING', 'ROLLING_BACK', 'CANCELLED'],
+  COMPLETED: ['ROLLBACK_PENDING', 'ROLLING_BACK', 'CANCELLED'],
+  FAILED: ['DRAFT', 'RECOMMENDED', 'ROLLBACK_PENDING', 'CANCELLED'],
+  CANCELLED: [],
+  ROLLBACK_PENDING: ['ROLLING_BACK', 'CANCELLED'],
+  ROLLING_BACK: ['ROLLED_BACK', 'FAILED'],
+  ROLLED_BACK: [],
+  EXPIRED: ['DRAFT']
+};
+
+export function isValidStateTransition(currentState, targetState) {
+  if (currentState === targetState) return true;
+  const allowed = ALLOWED_TRANSITIONS[currentState] || [];
+  return allowed.includes(targetState);
+}
+
+export function validateStateTransition(currentState, targetState) {
+  if (!isValidStateTransition(currentState, targetState)) {
+    throw new Error(`Invalid Response Plan state transition from '${currentState}' to '${targetState}'.`);
+  }
+  return true;
+}

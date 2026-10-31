@@ -1,0 +1,89 @@
+version: '3.8'
+
+# ==============================================================================
+# ICS-SHIELD — DEVELOPMENT DOCKER COMPOSE ORCHESTRATION
+# ==============================================================================
+
+networks:
+  dev_net:
+    driver: bridge
+
+volumes:
+  dev_mysql_data:
+    driver: local
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: icsshield-dev-backend
+    ports:
+      - "5050:5050"
+    environment:
+      - NODE_ENV=development
+      - PORT=5050
+      - DATABASE_HOST=mysql
+      - DATABASE_PORT=3306
+      - DATABASE_NAME=ics_shield
+      - DATABASE_USER=icsshield_user
+      - DATABASE_PASSWORD=icsshield_secure_password_change_me
+      - JWT_SECRET=dev_jwt_secret_key_12345
+      - DETECTION_SERVICE_URL=http://detection-engine:8080
+      - ICS_LAB_SERVICE_URL=http://ics-lab:8085
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - dev_net
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    container_name: icsshield-dev-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: icsshield_root_password_change_me
+      MYSQL_DATABASE: ics_shield
+      MYSQL_USER: icsshield_user
+      MYSQL_PASSWORD: icsshield_secure_password_change_me
+    volumes:
+      - dev_mysql_data:/var/lib/mysql
+      - ./database/schema/full_schema.sql:/docker-entrypoint-initdb.d/001_full_schema.sql
+    networks:
+      - dev_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-picsshield_root_password_change_me"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  detection-engine:
+    build:
+      context: ./detection-engine
+      dockerfile: Dockerfile
+    container_name: icsshield-dev-detection
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - ENVIRONMENT=development
+    networks:
+      - dev_net
+
+  ics-lab:
+    build:
+      context: ./ics-lab
+      dockerfile: docker/Dockerfile
+    container_name: icsshield-dev-lab
+    ports:
+      - "8085:8085"
+    environment:
+      - PORT=8085
+      - ENVIRONMENT=development
+    networks:
+      - dev_net

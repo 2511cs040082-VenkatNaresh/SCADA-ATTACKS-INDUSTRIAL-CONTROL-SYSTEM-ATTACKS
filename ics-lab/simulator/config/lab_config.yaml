@@ -1,0 +1,200 @@
+# ICS-SHIELD Laboratory Simulator Configuration File
+# Isolated laboratory environment setup - DO NOT use public IP addresses.
+
+simulation:
+  mode: "REAL_TIME"            # REAL_TIME or ACCELERATED
+  time_scale: 1.0              # Multiplier for simulation clock
+  telemetry_interval: 1.0      # Telemetry tick interval in seconds
+  event_interval: 2.0          # Synthetic protocol event tick interval
+  backend_url: "http://localhost:5050/api"
+  lab_subnet: "10.10.0.0/16"
+
+process:
+  name: "Industrial Water Treatment & Filtration Loop"
+  update_step: 1.0             # Step size in seconds
+  initial_state: "NORMAL"      # STARTUP, NORMAL, HIGH_LOAD, LOW_LOAD, MAINTENANCE, SHUTDOWN
+  variables:
+    tank_level:
+      min: 0.0
+      max: 100.0
+      initial: 50.0
+      normal_min: 20.0
+      normal_max: 90.0
+      unit: "%"
+    temperature:
+      min: 0.0
+      max: 120.0
+      initial: 72.0
+      normal_min: 65.0
+      normal_max: 82.0
+      unit: "°C"
+    pressure:
+      min: 0.0
+      max: 10.0
+      initial: 4.8
+      normal_min: 3.0
+      normal_max: 6.5
+      unit: "bar"
+    flow_rate:
+      min: 0.0
+      max: 250.0
+      initial: 120.0
+      normal_min: 90.0
+      normal_max: 160.0
+      unit: "L/min"
+    pump_speed:
+      min: 0.0
+      max: 3000.0
+      initial: 1450.0
+      unit: "RPM"
+    valve_position:
+      min: 0.0
+      max: 100.0
+      initial: 60.0
+      unit: "%"
+
+devices:
+  - id: "SCADA-SRV-01"
+    name: "Master SCADA Telemetry Server"
+    type: "SCADA_SERVER"
+    ip: "10.10.10.10"
+    mac: "00:1D:9C:10:00:10"
+    zone: "DMZ"
+    vendor: "Siemens"
+    model: "WinCC Professional"
+    firmware: "v7.5"
+  - id: "HMI-001"
+    name: "Main Control Room HMI Console"
+    type: "HMI"
+    ip: "10.10.20.10"
+    mac: "00:1D:9C:20:00:10"
+    zone: "CONTROL"
+    vendor: "Schneider Electric"
+    model: "Magelis GTU"
+    firmware: "v6.2"
+  - id: "ENG-WS-001"
+    name: "PLC Engineering Workstation"
+    type: "ENGINEERING_WORKSTATION"
+    ip: "10.10.10.20"
+    mac: "00:1D:9C:10:00:20"
+    zone: "OT"
+    vendor: "Siemens"
+    model: "TIA Portal v18"
+    firmware: "v18.0"
+  - id: "HISTORIAN-001"
+    name: "Plant Process Historian"
+    type: "HISTORIAN"
+    ip: "10.10.10.15"
+    mac: "00:1D:9C:10:00:15"
+    zone: "OT"
+    vendor: "OSIsoft"
+    model: "PI Server 2023"
+    firmware: "v2023.1"
+  - id: "PLC-001"
+    name: "Water Filtration PLC"
+    type: "PLC"
+    ip: "10.10.20.11"
+    mac: "00:1D:9C:20:00:11"
+    zone: "FIELD"
+    vendor: "Rockwell Automation"
+    model: "ControlLogix 5580"
+    firmware: "v33.011"
+  - id: "PLC-002"
+    name: "Chemical Dosing PLC"
+    type: "PLC"
+    ip: "10.10.20.12"
+    mac: "00:1D:9C:20:00:12"
+    zone: "FIELD"
+    vendor: "Siemens"
+    model: "S7-1500"
+    firmware: "v2.9.2"
+  - id: "RTU-001"
+    name: "Substation Telecontrol RTU"
+    type: "RTU"
+    ip: "10.10.30.10"
+    mac: "00:1D:9C:30:00:10"
+    zone: "FIELD"
+    vendor: "SEL"
+    model: "SEL-3530"
+    firmware: "v4.1"
+  - id: "SENSOR-001"
+    name: "Temperature Transmitter TT-101"
+    type: "SENSOR"
+    ip: "10.10.30.50"
+    mac: "00:1D:9C:30:00:50"
+    zone: "FIELD"
+    vendor: "Endress+Hauser"
+    model: "Cerabar M"
+    firmware: "v1.0"
+  - id: "SENSOR-002"
+    name: "Pressure Sensor PT-102"
+    type: "SENSOR"
+    ip: "10.10.30.51"
+    mac: "00:1D:9C:30:00:51"
+    zone: "FIELD"
+    vendor: "Endress+Hauser"
+    model: "Deltabar M"
+    firmware: "v1.0"
+  - id: "SENSOR-003"
+    name: "Flow Rate Sensor FT-103"
+    type: "SENSOR"
+    ip: "10.10.30.52"
+    mac: "00:1D:9C:30:00:52"
+    zone: "FIELD"
+    vendor: "KROHNE"
+    model: "OPTIFLUX 4000"
+    firmware: "v2.1"
+  - id: "SENSOR-004"
+    name: "Tank Level Sensor LT-104"
+    type: "SENSOR"
+    ip: "10.10.30.53"
+    mac: "00:1D:9C:30:00:53"
+    zone: "FIELD"
+    vendor: "VEGA"
+    model: "VEGAPULS 64"
+    firmware: "v1.4"
+  - id: "ACTUATOR-001"
+    name: "Primary Intake Water Pump"
+    type: "ACTUATOR"
+    ip: "10.10.30.60"
+    mac: "00:1D:9C:30:00:60"
+    zone: "FIELD"
+    vendor: "Grundfos"
+    model: "CRNE 32"
+    firmware: "v3.0"
+  - id: "ACTUATOR-002"
+    name: "Inlet Motorized Valve"
+    type: "ACTUATOR"
+    ip: "10.10.30.61"
+    mac: "00:1D:9C:30:00:61"
+    zone: "FIELD"
+    vendor: "Auma"
+    model: "SAEx 07.2"
+    firmware: "v2.1"
+  - id: "ACTUATOR-003"
+    name: "Cooling Fan Motor"
+    type: "ACTUATOR"
+    ip: "10.10.30.62"
+    mac: "00:1D:9C:30:00:62"
+    zone: "FIELD"
+    vendor: "ABB"
+    model: "M3AA 100"
+    firmware: "v1.2"
+  - id: "SWITCH-001"
+    name: "Field Switch Purdue Level 1"
+    type: "NETWORK_DEVICE"
+    ip: "10.10.20.1"
+    mac: "00:1D:9C:20:00:01"
+    zone: "CONTROL"
+    vendor: "Cisco"
+    model: "IE-3300"
+    firmware: "v17.3"
+  - id: "FIREWALL-001"
+    name: "Industrial Demarcation Firewall"
+    type: "FIREWALL"
+    ip: "10.10.10.1"
+    mac: "00:1D:9C:10:00:01"
+    zone: "DMZ"
+    vendor: "Palo Alto"
+    model: "PA-220R"
+    firmware: "v10.2"

@@ -1,0 +1,57 @@
+-- Migration 011: Incident Case Management & Investigation Timeline
+
+CREATE TABLE IF NOT EXISTS incidents (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    incident_number VARCHAR(64) NOT NULL UNIQUE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    severity VARCHAR(20) NOT NULL DEFAULT 'HIGH',
+    status VARCHAR(30) NOT NULL DEFAULT 'DETECTED',
+    priority VARCHAR(20) NOT NULL DEFAULT 'MEDIUM',
+    created_by INT NULL,
+    assigned_to INT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    resolved_at DATETIME NULL,
+    CONSTRAINT fk_inc_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_inc_assignee FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT chk_inc_status CHECK (status IN ('DETECTED', 'TRIAGED', 'INVESTIGATING', 'CONTAINMENT_RECOMMENDED', 'MITIGATION', 'VALIDATION', 'RESOLVED', 'CLOSED'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS incident_events (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    incident_id BIGINT NOT NULL,
+    event_id BIGINT NOT NULL,
+    added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ie_incident FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ie_event FOREIGN KEY (event_id) REFERENCES security_events(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS incident_assignments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    incident_id BIGINT NOT NULL,
+    user_id INT NOT NULL,
+    assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ia_incident FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ia_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS incident_notes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    incident_id BIGINT NOT NULL,
+    author_id INT NOT NULL,
+    note_text TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_in_incident FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE,
+    CONSTRAINT fk_in_author FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS incident_evidence (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    incident_id BIGINT NOT NULL,
+    evidence_type VARCHAR(50) NOT NULL,
+    evidence_path VARCHAR(255) NULL,
+    metadata JSON NULL,
+    uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_iev_incident FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
