@@ -1,0 +1,14 @@
+# ==============================================================================
+# CLOUDFLARE PAGES CONFIGURATION — ICS-SHIELD PUBLIC PLATFORM
+# ==============================================================================
+
+name = "ics-shield"
+pages_build_output_dir = "dist"
+compatibility_date = "2024-05-01"
+
+[vars]
+PROJECT_NAME = "ICS-SHIELD"
+OFFICIAL_TITLE = "SCADA ATTACKS & INDUSTRIAL CONTROL SYSTEM ATTACKS"
+AUTHOR = "Venkat Naresh"
+GITHUB_REPO = "https://github.com/2511cs040082-VenkatNaresh/SCADA-ATTACKS-INDUSTRIAL-CONTROL-SYSTEM-ATTACKS"
+RELEASE_VERSION = "v1.0.0"

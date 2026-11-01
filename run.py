@@ -34,17 +34,26 @@ BACKEND_URL = f"http://localhost:{BACKEND_PORT}"
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 BACKEND_DIR = os.path.join(ROOT_DIR, "backend")
 FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
+WEBSITE_DIR = os.path.join(ROOT_DIR, "website")
+WEBSITE_PORT = 4000
+WEBSITE_URL = f"http://localhost:{WEBSITE_PORT}"
 
 processes = []
 
 
-def print_banner():
+def print_banner(is_website=False):
     print("==============================================================================")
-    print(" 🛡️  ICS-SHIELD — Real-Time SCADA Attack Detection & Defense Platform")
-    print("==============================================================================")
-    print(f" Root Directory : {ROOT_DIR}")
-    print(f" Backend API    : {BACKEND_URL}")
-    print(f" Frontend UI     : {FRONTEND_URL}")
+    if is_website:
+        print(" 🌐  ICS-SHIELD — Public Software Distribution Platform Website")
+        print("==============================================================================")
+        print(f" Root Directory : {ROOT_DIR}")
+        print(f" Website URL    : {WEBSITE_URL}")
+    else:
+        print(" 🛡️  ICS-SHIELD — Real-Time SCADA Attack Detection & Defense Platform")
+        print("==============================================================================")
+        print(f" Root Directory : {ROOT_DIR}")
+        print(f" Backend API    : {BACKEND_URL}")
+        print(f" Frontend UI    : {FRONTEND_URL}")
     print("==============================================================================\n")
 
 
@@ -155,7 +164,8 @@ def cleanup_processes(signum=None, frame=None):
 
 
 def main():
-    print_banner()
+    is_website_mode = "--website" in sys.argv or "-w" in sys.argv or "website" in sys.argv
+    print_banner(is_website=is_website_mode)
 
     # Register signal handlers for clean exit
     signal.signal(signal.SIGINT, cleanup_processes)
@@ -163,6 +173,49 @@ def main():
 
     # 1. Preflight Checks
     check_prerequisites()
+
+    npm_cmd = "npm.cmd" if sys.platform == "win32" else "npm"
+    npx_cmd = "npx.cmd" if sys.platform == "win32" else "npx"
+
+    if is_website_mode:
+        free_port_if_occupied(WEBSITE_PORT)
+        print(f"\n🚀 Launching ICS-SHIELD Website Platform (Port {WEBSITE_PORT})...")
+        website_proc = subprocess.Popen(
+            [npx_cmd, "vite", "--port", str(WEBSITE_PORT), "--host", "0.0.0.0"],
+            cwd=WEBSITE_DIR,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1
+        )
+        processes.append(website_proc)
+        Thread(target=stream_output, args=(website_proc, "WEBSITE"), daemon=True).start()
+
+        print(f"\n⏳ Waiting for website server on {WEBSITE_URL}...")
+        if wait_for_port("127.0.0.1", WEBSITE_PORT, timeout=20):
+            print(f"  └─ ✅ Website Platform ready on {WEBSITE_URL}")
+        else:
+            print("  └─ ⚠️ Website port check timed out.")
+
+        print(f"\n🌐 Opening Website in your browser ({WEBSITE_URL})...")
+        time.sleep(1)
+        try:
+            webbrowser.open(WEBSITE_URL)
+        except Exception as e:
+            print(f"⚠️ Could not open browser automatically: {e}")
+
+        print("\n==============================================================================")
+        print(f" 🟢 WEBSITE PLATFORM IS LIVE AT: {WEBSITE_URL}")
+        print(" Press Ctrl+C to stop the website server.")
+        print("==============================================================================\n")
+
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            cleanup_processes()
+        return
+
     check_and_install_dependencies()
 
     # 2. Port Cleanup

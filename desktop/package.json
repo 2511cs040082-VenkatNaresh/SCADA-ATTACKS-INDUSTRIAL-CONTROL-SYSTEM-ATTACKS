@@ -1,0 +1,70 @@
+{
+  "name": "ics-shield-desktop",
+  "version": "1.0.0",
+  "description": "ICS-SHIELD — SCADA Attacks & Industrial Control System Attacks Desktop Platform",
+  "main": "src/main.cjs",
+  "author": "Venkat Naresh",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "com.icsshield.soc",
+    "productName": "ICS-SHIELD",
+    "copyright": "Copyright © 2026 Venkat Naresh. All rights reserved.",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../backend",
+        "to": "backend",
+        "filter": [
+          "**/*",
+          "!node_modules/**"
+        ]
+      },
+      {
+        "from": "../frontend/dist",
+        "to": "frontend-dist",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.ico",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ICS-SHIELD SCADA Platform",
+      "artifactName": "ICS-SHIELD-Setup-${version}.${ext}",
+      "runAfterFinish": true
+    }
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^30.0.9",
+    "electron-builder": "^24.13.3"
+  }
+}
