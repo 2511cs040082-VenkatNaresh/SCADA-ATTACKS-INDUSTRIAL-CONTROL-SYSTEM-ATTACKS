@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "build": "cd website && npm install && npm run build",
     "db:migrate": "node database/migrations/migrate.js",
     "db:test": "node tests/database.test.js"
   },

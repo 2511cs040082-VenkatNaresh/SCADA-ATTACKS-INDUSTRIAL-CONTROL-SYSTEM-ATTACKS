@@ -2,7 +2,7 @@
 # CLOUDFLARE PAGES CONFIGURATION — ICS-SHIELD PUBLIC PLATFORM
 # ==============================================================================
 
-name = "ics-shield"
+name = "scada-attacks-industrial-control-system-attacks"
 pages_build_output_dir = "dist"
 compatibility_date = "2024-05-01"
 
